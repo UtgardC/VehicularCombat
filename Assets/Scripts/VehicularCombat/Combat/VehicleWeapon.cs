@@ -88,7 +88,7 @@ namespace VehicularCombat
                 return;
             }
 
-            if (requireLockedCursor && Cursor.lockState != CursorLockMode.Locked)
+            if (requireLockedCursor && (Cursor.lockState != CursorLockMode.Locked && Cursor.lockState != CursorLockMode.Confined))
             {
                 return;
             }
