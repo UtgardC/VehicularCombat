@@ -1,6 +1,5 @@
 using Unity.Cinemachine;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace VehicularCombat
 {
@@ -31,10 +30,6 @@ namespace VehicularCombat
 
         [SerializeField, Tooltip("Ignore Look input while the cursor is unlocked.")]
         private bool requireLockedCursorForLook = true;
-
-        [Header("Cursor")]
-        [SerializeField, Tooltip("Lock and hide the cursor when play starts.")]
-        private bool lockCursorOnStart = true;
 
         [Header("Cinemachine Aim Blend")]
         [SerializeField, Tooltip("General orbital Cinemachine camera.")]
@@ -106,17 +101,8 @@ namespace VehicularCombat
             }
         }
 
-        private void Start()
-        {
-            if (lockCursorOnStart)
-            {
-                LockCursor();
-            }
-        }
-
         private void Update()
         {
-            HandleCursor();
             UpdateOrbit();
             UpdateCinemachinePriorities();
         }
@@ -188,37 +174,9 @@ namespace VehicularCombat
             aimCamera.Priority.Value = aiming ? activeAimCameraPriority : inactiveAimCameraPriority;
         }
 
-        private void HandleCursor()
-        {
-            Keyboard keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
-            {
-                UnlockCursor();
-                return;
-            }
-
-            Mouse mouse = Mouse.current;
-            if (mouse != null && mouse.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
-            {
-                LockCursor();
-            }
-        }
-
         private void HandleWeaponFired()
         {
             lastConfirmedShotTime = Time.time;
-        }
-
-        private static void LockCursor()
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
-
-        private static void UnlockCursor()
-        {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
         }
 
         private static float NormalizePitch(float angle)

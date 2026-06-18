@@ -1,131 +1,265 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System.Collections;
 
-public class UIMenuController : MonoBehaviour
+namespace VehicularCombat
 {
-    [Header("Referencias")]
-    public RectTransform menuPanel;
-
-    [Header("Input (Nuevo Sistema)")]
-    public InputAction toggleMenuAction = new InputAction("ToggleMenu", binding: "<Keyboard>/escape");
-
-    [Header("Configuración de Posición")]
-    public float posicionOcultaY = -1000f;
-    public float posicionReveladaY = 0f;
-
-    [Header("Configuración de Animación")]
-    public float duracionTransicion = 0.5f;
-    public AnimationCurve curvaTransicion = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
-
-    private bool menuAbierto = false;
-    private Coroutine animacionActual;
-
-    // Variables para almacenar el estado previo del cursor
-    private CursorLockMode estadoAnteriorCursor;
-    private bool visibilidadAnteriorCursor;
-
-    private void OnEnable()
+    public sealed class UIMenuController : MonoBehaviour
     {
-        toggleMenuAction.Enable();
-        toggleMenuAction.performed += OnToggleMenu;
-    }
+        [Header("References")]
+        [SerializeField, Tooltip("Panel root that is shown while the game is paused.")]
+        private RectTransform menuPanel;
 
-    private void OnDisable()
-    {
-        toggleMenuAction.Disable();
-        toggleMenuAction.performed -= OnToggleMenu;
-    }
+        [Header("Input")]
+        [SerializeField, Tooltip("Pause/Menu toggle action. Recommended type: Button, binding: Escape. Avoid Gamepad Start if Restart also uses Start.")]
+        private InputActionReference toggleMenuActionReference;
 
-    private void Start()
-    {
-        menuPanel.anchoredPosition = new Vector2(menuPanel.anchoredPosition.x, posicionOcultaY);
-        menuPanel.gameObject.SetActive(false);
-        
-        // Asegurar que el juego inicie con el tiempo normal
-        Time.timeScale = 1f; 
-    }
+        [SerializeField, Tooltip("Enable the toggle action when this component is enabled.")]
+        private bool enableToggleActionOnEnable = true;
 
-    private void OnToggleMenu(InputAction.CallbackContext context)
-    {
-        AlternarMenu();
-    }
+        [Header("Pause")]
+        [SerializeField, Tooltip("Set Time.timeScale to 0 while the menu is open.")]
+        private bool pauseTimeScale = true;
 
-    private void AlternarMenu()
-    {
-        menuAbierto = !menuAbierto;
+        [SerializeField, Tooltip("Lock and hide the cursor when the scene starts.")]
+        private bool lockCursorOnStart = true;
 
-        if (menuAbierto)
+        [SerializeField, Tooltip("Cursor lock mode used during gameplay.")]
+        private CursorLockMode gameplayCursorLockMode = CursorLockMode.Locked;
+
+        [Header("Animation")]
+        [SerializeField, Tooltip("Hidden menu Y position in anchored UI coordinates.")]
+        private float hiddenPositionY = -1000f;
+
+        [SerializeField, Tooltip("Visible menu Y position in anchored UI coordinates.")]
+        private float visiblePositionY = 0f;
+
+        [SerializeField, Min(0f), Tooltip("Menu transition duration in unscaled seconds.")]
+        private float transitionDuration = 0.5f;
+
+        [SerializeField, Tooltip("Animation curve used for the menu slide.")]
+        private AnimationCurve transitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+        private InputAction toggleMenuAction;
+        private Coroutine currentAnimation;
+        private bool menuOpen;
+        private bool warnedMissingAction;
+        private bool warnedMissingPanel;
+        private float previousTimeScale = 1f;
+
+        public bool IsMenuOpen => menuOpen;
+
+        private void OnEnable()
         {
-            // 1. Guardar el estado del cursor antes de modificarlo
-            estadoAnteriorCursor = Cursor.lockState;
-            visibilidadAnteriorCursor = Cursor.visible;
+            toggleMenuAction = toggleMenuActionReference != null ? toggleMenuActionReference.action : null;
 
-            // 2. Activar UI y mostrar cursor
-            menuPanel.gameObject.SetActive(true);
-            ActualizarEstadoCursor(true);
+            if (toggleMenuAction == null)
+            {
+                WarnMissingActionOnce();
+                return;
+            }
 
-            // 3. Pausar el juego
-            Time.timeScale = 0f;
-        }
-        else
-        {
-            // 1. Restaurar el estado del cursor
-            ActualizarEstadoCursor(false);
+            toggleMenuAction.performed += HandleToggleMenu;
 
-            // 2. Reanudar el juego
-            Time.timeScale = 1f;
+            if (enableToggleActionOnEnable)
+            {
+                toggleMenuAction.Enable();
+            }
         }
 
-        if (animacionActual != null)
+        private void OnDisable()
         {
-            StopCoroutine(animacionActual);
+            if (toggleMenuAction != null)
+            {
+                toggleMenuAction.performed -= HandleToggleMenu;
+
+                if (enableToggleActionOnEnable)
+                {
+                    toggleMenuAction.Disable();
+                }
+            }
+
+            if (menuOpen)
+            {
+                menuOpen = false;
+
+                if (pauseTimeScale)
+                {
+                    Time.timeScale = previousTimeScale;
+                }
+
+                if (lockCursorOnStart)
+                {
+                    ApplyGameplayCursorState();
+                }
+            }
         }
 
-        float posicionObjetivoY = menuAbierto ? posicionReveladaY : posicionOcultaY;
-        animacionActual = StartCoroutine(AnimarMenu(posicionObjetivoY));
-    }
-
-private void ActualizarEstadoCursor(bool menuActivo)
-{
-    if (menuActivo)
-    {
-        // Al abrir el menú: Cursor visible y libre para hacer clic en los botones
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
-    }
-    else
-    {
-        // Al cerrar el menú: Cursor invisible y confinado a la ventana
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Confined;
-    }
-}
-
-    private IEnumerator AnimarMenu(float posicionObjetivoY)
-    {
-        float tiempoTranscurrido = 0f;
-        float posicionInicialY = menuPanel.anchoredPosition.y;
-
-        while (tiempoTranscurrido < duracionTransicion)
+        private void Start()
         {
-            // Time.unscaledDeltaTime permite que la animación progrese aunque Time.timeScale sea 0
-            tiempoTranscurrido += Time.unscaledDeltaTime; 
-            float porcentaje = tiempoTranscurrido / duracionTransicion;
-            
-            float valorCurva = curvaTransicion.Evaluate(porcentaje);
-            float nuevaPosicionY = Mathf.LerpUnclamped(posicionInicialY, posicionObjetivoY, valorCurva);
-            
-            menuPanel.anchoredPosition = new Vector2(menuPanel.anchoredPosition.x, nuevaPosicionY);
+            if (menuPanel != null)
+            {
+                menuPanel.anchoredPosition = new Vector2(menuPanel.anchoredPosition.x, hiddenPositionY);
+                menuPanel.gameObject.SetActive(false);
+            }
+            else
+            {
+                WarnMissingPanelOnce();
+            }
 
-            yield return null;
+            if (pauseTimeScale)
+            {
+                Time.timeScale = 1f;
+            }
+
+            if (lockCursorOnStart)
+            {
+                ApplyGameplayCursorState();
+            }
         }
 
-        menuPanel.anchoredPosition = new Vector2(menuPanel.anchoredPosition.x, posicionObjetivoY);
-
-        if (!menuAbierto)
+        public void ToggleMenu()
         {
-            menuPanel.gameObject.SetActive(false);
+            SetMenuOpen(!menuOpen);
+        }
+
+        public void OpenMenu()
+        {
+            SetMenuOpen(true);
+        }
+
+        public void CloseMenu()
+        {
+            SetMenuOpen(false);
+        }
+
+        public void ResumeGame()
+        {
+            CloseMenu();
+        }
+
+        private void HandleToggleMenu(InputAction.CallbackContext context)
+        {
+            ToggleMenu();
+        }
+
+        private void SetMenuOpen(bool open)
+        {
+            if (menuOpen == open)
+            {
+                return;
+            }
+
+            menuOpen = open;
+
+            if (menuOpen)
+            {
+                previousTimeScale = Time.timeScale > 0f ? Time.timeScale : 1f;
+                SetMenuPanelActive(true);
+                ApplyMenuCursorState();
+
+                if (pauseTimeScale)
+                {
+                    Time.timeScale = 0f;
+                }
+            }
+            else
+            {
+                if (pauseTimeScale)
+                {
+                    Time.timeScale = previousTimeScale;
+                }
+
+                ApplyGameplayCursorState();
+            }
+
+            AnimateMenu(menuOpen ? visiblePositionY : hiddenPositionY);
+        }
+
+        private void AnimateMenu(float targetPositionY)
+        {
+            if (menuPanel == null)
+            {
+                return;
+            }
+
+            if (currentAnimation != null)
+            {
+                StopCoroutine(currentAnimation);
+            }
+
+            currentAnimation = StartCoroutine(AnimateMenuPosition(targetPositionY));
+        }
+
+        private IEnumerator AnimateMenuPosition(float targetPositionY)
+        {
+            float elapsed = 0f;
+            float startPositionY = menuPanel.anchoredPosition.y;
+
+            while (elapsed < transitionDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = transitionDuration > 0f ? Mathf.Clamp01(elapsed / transitionDuration) : 1f;
+                float curvedT = transitionCurve.Evaluate(t);
+                float nextPositionY = Mathf.LerpUnclamped(startPositionY, targetPositionY, curvedT);
+
+                menuPanel.anchoredPosition = new Vector2(menuPanel.anchoredPosition.x, nextPositionY);
+                yield return null;
+            }
+
+            menuPanel.anchoredPosition = new Vector2(menuPanel.anchoredPosition.x, targetPositionY);
+
+            if (!menuOpen)
+            {
+                SetMenuPanelActive(false);
+            }
+
+            currentAnimation = null;
+        }
+
+        private void SetMenuPanelActive(bool active)
+        {
+            if (menuPanel == null)
+            {
+                WarnMissingPanelOnce();
+                return;
+            }
+
+            menuPanel.gameObject.SetActive(active);
+        }
+
+        private void ApplyMenuCursorState()
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        private void ApplyGameplayCursorState()
+        {
+            Cursor.lockState = gameplayCursorLockMode;
+            Cursor.visible = false;
+        }
+
+        private void WarnMissingActionOnce()
+        {
+            if (warnedMissingAction)
+            {
+                return;
+            }
+
+            Debug.LogWarning($"{nameof(UIMenuController)} on {name} has no valid Toggle Menu Input Action Reference assigned.", this);
+            warnedMissingAction = true;
+        }
+
+        private void WarnMissingPanelOnce()
+        {
+            if (warnedMissingPanel)
+            {
+                return;
+            }
+
+            Debug.LogWarning($"{nameof(UIMenuController)} on {name} has no Menu Panel assigned.", this);
+            warnedMissingPanel = true;
         }
     }
 }

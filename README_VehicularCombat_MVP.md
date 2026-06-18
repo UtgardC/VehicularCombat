@@ -79,7 +79,25 @@ Ambas pueden seguir/mirar a `CameraTarget`. Asignales esas referencias al `Orbit
 
 El script rota `CameraTarget` con `Look`. Si `CameraTarget` es hijo del vehiculo, su rotacion mundial se mantiene independiente del yaw del chasis, asi que girar el vehiculo no obliga a la camara a copiarlo.
 
-El cursor se bloquea al iniciar, `Escape` lo desbloquea y click izquierdo lo vuelve a bloquear.
+El cursor lo maneja el menu de pausa: se bloquea y oculta al iniciar, se libera al abrir el menu y vuelve a `Locked` al reanudar.
+
+## Pausa
+
+Crea una accion de pausa/menu, por ejemplo:
+
+| Accion | Tipo | Binding sugerido |
+| --- | --- | --- |
+| `ToggleMenu` | Button | Escape |
+
+No uses Gamepad Start para pausa si `Restart` tambien lo usa, porque ambas acciones se dispararian con el mismo boton.
+
+En `UIMenuController`, asigna:
+
+- `Menu Panel`: el panel raiz del menu.
+- `Toggle Menu Action Reference`: la accion de pausa/menu.
+- `Gameplay Cursor Lock Mode`: recomendado `Locked`.
+
+El menu usa `Time.timeScale = 0` mientras esta abierto y anima con `Time.unscaledDeltaTime`.
 
 ## Torreta y disparo
 
