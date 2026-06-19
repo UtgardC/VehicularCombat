@@ -52,6 +52,7 @@ Componentes en `PlayerVehicle`:
 - `Collider`
 - `VehicleInputReader`
 - `ArcadeVehicleController`
+- `HoverVehicleVisuals` opcional para inclinacion visual/hover idle
 - `OrbitCameraController`
 - `TurretAimController`
 - `VehicleWeapon`
@@ -67,6 +68,10 @@ Configuracion sugerida del `Rigidbody`:
 - Freeze Rotation X y Z
 
 `ArcadeVehicleController` usa `Rigidbody.linearVelocity`, fuerzas fisicas, `FixedUpdate`, movimiento relativo a `transform.forward`, friccion lateral artificial y freno de mano. No clampa la velocidad maxima del Rigidbody: solo deja de sumar fuerza de motor cuando alcanza el limite en esa direccion.
+
+`HoverVehicleVisuals` no cambia la fisica. Asignale un hijo visual en `Visual Root`; el script usa velocidad/aceleracion local para inclinar el modelo al acelerar, frenar y doblar, y agrega un hover idle leve.
+
+`VehicleTelemetryDisplay` es opcional para debug. Agregalo al vehiculo para ver velocidad, velocidad local, aceleracion y fuerza de cambio de velocidad con un overlay OnGUI o con un `TextMeshProUGUI`.
 
 ## Camara
 

@@ -39,6 +39,12 @@ namespace VehicularCombat
         [SerializeField, Range(0.1f, 1f), Tooltip("Steering multiplier when close to maximum motor forward speed.")]
         private float highSpeedSteeringMultiplier = 0.55f;
 
+        [SerializeField, Min(0f), Tooltip("How quickly raw steering input reaches the value used by physics. Higher is more responsive.")]
+        private float steeringInputResponse = 12f;
+
+        [SerializeField, Range(0f, 0.25f), Tooltip("Small steering values below this are ignored.")]
+        private float steeringDeadZone = 0.02f;
+
         [Header("Grip And Handbrake")]
         [SerializeField, Min(0f), Tooltip("Artificial lateral grip used during normal driving.")]
         private float normalLateralGrip = 8f;
@@ -54,9 +60,10 @@ namespace VehicularCombat
         private bool enforceUprightRotationConstraints = true;
 
         private bool warnedMissingInput;
+        private float smoothedSteeringInput;
 
         public Rigidbody VehicleRigidbody => vehicleRigidbody;
-        public float ForwardSpeed => vehicleRigidbody != null ? Vector3.Dot(vehicleRigidbody.linearVelocity, transform.forward) : 0f;
+        public float ForwardSpeed => vehicleRigidbody != null ? Vector3.Dot(vehicleRigidbody.linearVelocity, vehicleRigidbody.rotation * Vector3.forward) : 0f;
 
         private void Reset()
         {
@@ -99,26 +106,32 @@ namespace VehicularCombat
 
             float accelerateInput = inputReader.Accelerate;
             float reverseInput = inputReader.Reverse;
-            float steeringInput = inputReader.Steering;
+            float steeringInput = ApplySteeringDeadZone(inputReader.Steering);
             bool handbrakeHeld = inputReader.HandbrakeHeld;
 
             float driveInput = accelerateInput - reverseInput;
-            float forwardSpeed = Vector3.Dot(vehicleRigidbody.linearVelocity, transform.forward);
+            Vector3 forward = vehicleRigidbody.rotation * Vector3.forward;
+            float forwardSpeed = Vector3.Dot(vehicleRigidbody.linearVelocity, forward);
 
-            ApplyMotorForce(driveInput, forwardSpeed);
-            ApplySteering(steeringInput, forwardSpeed);
+            smoothedSteeringInput = Mathf.MoveTowards(
+                smoothedSteeringInput,
+                steeringInput,
+                steeringInputResponse * Time.fixedDeltaTime);
+
+            ApplyMotorForce(driveInput, forwardSpeed, forward);
+            ApplySteering(smoothedSteeringInput, forwardSpeed);
             ApplyArtificialGrip(handbrakeHeld);
         }
 
-        private void ApplyMotorForce(float driveInput, float forwardSpeed)
+        private void ApplyMotorForce(float driveInput, float forwardSpeed, Vector3 forward)
         {
             if (driveInput > 0f && forwardSpeed < maximumMotorForwardSpeed)
             {
-                vehicleRigidbody.AddForce(transform.forward * (driveInput * acceleration), ForceMode.Acceleration);
+                vehicleRigidbody.AddForce(forward * (driveInput * acceleration), ForceMode.Acceleration);
             }
             else if (driveInput < 0f && forwardSpeed > -maximumMotorReverseSpeed)
             {
-                vehicleRigidbody.AddForce(transform.forward * (driveInput * reverseAcceleration), ForceMode.Acceleration);
+                vehicleRigidbody.AddForce(forward * (driveInput * reverseAcceleration), ForceMode.Acceleration);
             }
         }
 
@@ -156,7 +169,8 @@ namespace VehicularCombat
 
         private void ApplyArtificialGrip(bool handbrakeHeld)
         {
-            Vector3 localVelocity = transform.InverseTransformDirection(vehicleRigidbody.linearVelocity);
+            Quaternion bodyRotation = vehicleRigidbody.rotation;
+            Vector3 localVelocity = Quaternion.Inverse(bodyRotation) * vehicleRigidbody.linearVelocity;
 
             float lateralGrip = handbrakeHeld ? handbrakeLateralGrip : normalLateralGrip;
             float lateralBlend = 1f - Mathf.Exp(-lateralGrip * Time.fixedDeltaTime);
@@ -167,7 +181,12 @@ namespace VehicularCombat
                 localVelocity.z = Mathf.MoveTowards(localVelocity.z, 0f, handbrakeForce * Time.fixedDeltaTime);
             }
 
-            vehicleRigidbody.linearVelocity = transform.TransformDirection(localVelocity);
+            vehicleRigidbody.linearVelocity = bodyRotation * localVelocity;
+        }
+
+        private float ApplySteeringDeadZone(float steeringInput)
+        {
+            return Mathf.Abs(steeringInput) >= steeringDeadZone ? steeringInput : 0f;
         }
 
         private void ApplyRecommendedRigidbodySettings()
@@ -202,6 +221,7 @@ namespace VehicularCombat
             maximumMotorForwardSpeed = Mathf.Max(0f, maximumMotorForwardSpeed);
             maximumMotorReverseSpeed = Mathf.Max(0f, maximumMotorReverseSpeed);
             speedForFullSteering = Mathf.Max(0.01f, speedForFullSteering);
+            steeringInputResponse = Mathf.Max(0f, steeringInputResponse);
         }
     }
 }
