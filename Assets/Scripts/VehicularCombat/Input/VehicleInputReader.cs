@@ -4,8 +4,10 @@ using UnityEngine.InputSystem;
 
 namespace VehicularCombat
 {
-    public sealed class VehicleInputReader : MonoBehaviour
+    public sealed class VehicleInputReader : VehicleInputProvider
     {
+        
+
         [Header("Input Actions")]
         [SerializeField, Tooltip("Enable the assigned input actions when this component is enabled. Disable this if another component already enables the same action map.")]
         private bool enableActionsOnEnable = true;
@@ -45,14 +47,16 @@ namespace VehicularCombat
         public event Action FirePressed;
         public event Action RestartPressed;
 
-        public float Accelerate => ReadClamped01(accelerateAction);
-        public float Reverse => ReadClamped01(reverseAction);
-        public float Steering => ReadClampedAxis(steerAction);
-        public bool HandbrakeHeld => handbrakeAction != null && handbrakeAction.IsPressed();
+        public override float Accelerate => ReadClamped01(accelerateAction);
+        public override float Reverse => ReadClamped01(reverseAction);
+        public override float Steering => ReadClampedAxis(steerAction);
+        public override bool HandbrakeHeld => handbrakeAction != null && handbrakeAction.IsPressed();
+        public override bool FireHeld => fireAction != null && fireAction.IsPressed();
+        public override bool FireWasPressedThisFrame => fireAction != null && fireAction.WasPressedThisFrame();
+
         public Vector2 LookInput => lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
         public bool LookInputUsesPointerDelta => lookInputUsesPointerDelta;
-        public bool FireHeld => fireAction != null && fireAction.IsPressed();
-        public bool FireWasPressedThisFrame => fireAction != null && fireAction.WasPressedThisFrame();
+      
         public bool RestartWasPressedThisFrame => restartAction != null && restartAction.WasPressedThisFrame();
         public float LastFirePressedTime { get; private set; } = float.NegativeInfinity;
 

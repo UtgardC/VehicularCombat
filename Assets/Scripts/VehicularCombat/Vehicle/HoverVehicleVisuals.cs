@@ -9,7 +9,7 @@ namespace VehicularCombat
         private Rigidbody vehicleRigidbody;
 
         [SerializeField, Tooltip("Central input reader. Used only for responsive visual banking while steering.")]
-        private VehicleInputReader inputReader;
+        private VehicleInputProvider inputReader;
 
         [SerializeField, Tooltip("Child transform that contains the ship model. Do not assign the physics root.")]
         private Transform visualRoot;
@@ -97,7 +97,7 @@ namespace VehicularCombat
         private void Reset()
         {
             vehicleRigidbody = GetComponent<Rigidbody>();
-            inputReader = GetComponent<VehicleInputReader>();
+            inputReader = GetComponent<VehicleInputProvider>();
         }
 
         private void Awake()
@@ -109,7 +109,7 @@ namespace VehicularCombat
 
             if (inputReader == null)
             {
-                inputReader = GetComponent<VehicleInputReader>();
+                inputReader = GetComponent<VehicleInputProvider>();
             }
         }
 

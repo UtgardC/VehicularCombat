@@ -8,7 +8,7 @@ namespace VehicularCombat
     {
         [Header("References")]
         [SerializeField, Tooltip("Central input reader for the Vehicle action map.")]
-        private VehicleInputReader inputReader;
+        private VehicleInputProvider inputReader;
 
         [SerializeField, Tooltip("Rigidbody moved by this controller. Defaults to the Rigidbody on this GameObject.")]
         private Rigidbody vehicleRigidbody;
@@ -68,7 +68,7 @@ namespace VehicularCombat
         private void Reset()
         {
             vehicleRigidbody = GetComponent<Rigidbody>();
-            inputReader = GetComponent<VehicleInputReader>();
+            inputReader = GetComponent<VehicleInputProvider>();
             ApplyRecommendedRigidbodySettings();
         }
 
@@ -81,7 +81,7 @@ namespace VehicularCombat
 
             if (inputReader == null)
             {
-                inputReader = GetComponent<VehicleInputReader>();
+                inputReader = GetComponent<VehicleInputProvider>();
             }
 
             if (enforceUprightRotationConstraints && vehicleRigidbody != null)

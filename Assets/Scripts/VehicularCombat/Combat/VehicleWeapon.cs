@@ -7,7 +7,7 @@ namespace VehicularCombat
     {
         [Header("References")]
         [SerializeField, Tooltip("Central input reader for the Vehicle action map.")]
-        private VehicleInputReader inputReader;
+        private VehicleInputProvider inputReader;
 
         [SerializeField, Tooltip("Projectile spawn point. Its forward direction is used as shot direction.")]
         private Transform firePoint;
@@ -57,7 +57,7 @@ namespace VehicularCombat
 
         private void Reset()
         {
-            inputReader = GetComponentInParent<VehicleInputReader>();
+            inputReader = GetComponent<VehicleInputProvider>();
             vehicleRigidbody = GetComponentInParent<Rigidbody>();
             ownerRoot = transform.root;
         }
@@ -66,7 +66,7 @@ namespace VehicularCombat
         {
             if (inputReader == null)
             {
-                inputReader = GetComponentInParent<VehicleInputReader>();
+                inputReader = GetComponent<VehicleInputProvider>();
             }
 
             if (vehicleRigidbody == null)
