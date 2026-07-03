@@ -1,7 +1,5 @@
 using UnityEngine;
 
-using UnityEngine;
-
 namespace VehicularCombat
 {
     public class EnemyVehicleBrain : VehicleInputProvider
@@ -17,6 +15,12 @@ namespace VehicularCombat
         [SerializeField, Tooltip("Distancia a partir de la cual el enemigo intenta embestir (Distancia Cerca).")]
         private float rammingRange = 15f;
 
+        [SerializeField, Tooltip("Distancia considerada como impacto físico (Ajustar según el largo de tu nave).")]
+        private float impactDistance = 4f;
+
+        [SerializeField, Tooltip("Tiempo en segundos que retrocede tras chocar.")]
+        private float disengageDuration = 1.2f;
+
         [SerializeField, Tooltip("Ángulo frontal máximo en grados para permitir el disparo.")]
         private float fireAngleTolerance = 20f;
 
@@ -24,6 +28,7 @@ namespace VehicularCombat
         private float currentReverse;
         private float currentSteering;
         private bool currentFireHeld;
+        private float disengageTimer;
 
         // Implementación del "joystick simulado"
         public override float Accelerate => currentAccelerate;
@@ -64,6 +69,30 @@ namespace VehicularCombat
             float angleToTarget = Vector3.Angle(transform.forward, toTarget.normalized);
             bool canSeeTarget = angleToTarget <= fireAngleTolerance;
 
+            // 1. MANEJO DEL DESENGANCHE (Prioridad Máxima)
+            if (disengageTimer > 0f)
+            {
+                disengageTimer -= Time.deltaTime;
+
+                // ESTADO: RETIRADA TÁCTICA
+                currentAccelerate = 0f;
+                currentReverse = 1f; // Clava la marcha atrás
+
+                // Invertimos la dirección del volante para que al retroceder saque la trompa hacia afuera
+                currentSteering = -Mathf.Clamp(localTargetPos.x, -1f, 1f);
+
+                currentFireHeld = canSeeTarget; // Sigue disparando si le da el ángulo
+                return; // Cortamos acá para que no evalúe los otros estados mientras huye
+            }
+
+            // 2. DETECCIÓN DE IMPACTO
+            // Si está muy cerca y el jugador está hacia adelante, consideramos que hubo choque
+            if (distance <= impactDistance && localTargetPos.z > -1f)
+            {
+                disengageTimer = disengageDuration; // Arrancamos el timer para el próximo frame
+                return;
+            }
+
             if (distance > engageRange)
             {
                 // ESTADO: LEJOS (Perseguir)
@@ -75,8 +104,7 @@ namespace VehicularCombat
             else if (distance <= engageRange && distance > rammingRange)
             {
                 // ESTADO: DISTANCIA MEDIA (Seguir y Disparar)
-                // Mantiene el acelerador (lo bajé a 0.8f para que priorice un poco más la maniobrabilidad al apuntar)
-                currentAccelerate = 0.8f;
+                currentAccelerate = 1f;
                 currentReverse = 0f;
                 currentFireHeld = canSeeTarget;
             }

@@ -765,7 +765,6 @@ GameObject:
   - component: {fileID: 242701221}
   - component: {fileID: 242701217}
   - component: {fileID: 242701216}
-  - component: {fileID: 242701215}
   - component: {fileID: 242701214}
   m_Layer: 0
   m_Name: Enemigo
@@ -792,40 +791,13 @@ MonoBehaviour:
   vehicleRigidbody: {fileID: 242701218}
   ownerRoot: {fileID: 242701220}
   fireCooldown: 0.25
-  projectileSpeed: 35
+  projectileSpeed: 60
   projectileLifetime: 4
   projectileDamage: 1
   automaticFire: 1
   requireLockedCursor: 0
   muzzleFlash: {fileID: 0}
   projectileImpactEffectPrefab: {fileID: 0}
---- !u!114 &242701215
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 242701213}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0da6dba473166294b9b5c640c0fdfb2a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::VehicularCombat.TurretAimController
-  playerCamera: {fileID: 330585545}
-  turretYawPivot: {fileID: 1140884172}
-  turretPitchPivot: {fileID: 1984695864}
-  ignoredRoot: {fileID: 242701220}
-  ignoredColliders:
-  - {fileID: 242701219}
-  aimMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  maximumAimDistance: 500
-  yawRotationSpeed: 360
-  pitchRotationSpeed: 180
-  minimumPitch: -30
-  maximumPitch: 60
-  minimumAimDistance: 0.5
 --- !u!114 &242701216
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -842,11 +814,11 @@ MonoBehaviour:
   vehicleRigidbody: {fileID: 242701218}
   acceleration: 35
   reverseAcceleration: 25
-  maximumMotorForwardSpeed: 100
-  maximumMotorReverseSpeed: 8
-  turnSpeed: 110
+  maximumMotorForwardSpeed: 110
+  maximumMotorReverseSpeed: 20
+  turnSpeed: 150
   minimumSteeringSpeed: 0.5
-  speedForFullSteering: 6
+  speedForFullSteering: 8
   highSpeedSteeringMultiplier: 0.55
   steeringInputResponse: 12
   steeringDeadZone: 0.02
@@ -869,6 +841,8 @@ MonoBehaviour:
   target: {fileID: 1423291899}
   engageRange: 50
   rammingRange: 15
+  impactDistance: 4
+  disengageDuration: 1.2
   fireAngleTolerance: 20
 --- !u!54 &242701218
 Rigidbody:
@@ -2385,6 +2359,7 @@ GameObject:
   - component: {fileID: 1140884172}
   - component: {fileID: 1140884174}
   - component: {fileID: 1140884173}
+  - component: {fileID: 1140884175}
   m_Layer: 0
   m_Name: TorretaParte1
   m_TagString: Untagged
@@ -2465,6 +2440,30 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1140884171}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1140884175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1140884171}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f5c1c937676046459092d1939b209d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VehicularCombat.EnemyTurretAim1
+  target: {fileID: 1423291899}
+  turretYawPivot: {fileID: 1140884172}
+  turretPitchPivot: {fileID: 1984695864}
+  ignoredRoot: {fileID: 242701220}
+  yawRotationSpeed: 360
+  pitchRotationSpeed: 90
+  minimumPitch: -10
+  maximumPitch: 35
+  usePredictiveAiming: 1
+  projectileSpeed: 60
+  inaccuracyRadius: 1.2
+  inaccuracySpeed: 0.5
 --- !u!1 &1159924748
 GameObject:
   m_ObjectHideFlags: 0
@@ -3273,7 +3272,7 @@ MonoBehaviour:
   acceleration: 35
   reverseAcceleration: 25
   maximumMotorForwardSpeed: 100
-  maximumMotorReverseSpeed: 8
+  maximumMotorReverseSpeed: 20
   turnSpeed: 110
   minimumSteeringSpeed: 0.5
   speedForFullSteering: 6
