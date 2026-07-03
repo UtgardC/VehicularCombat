@@ -5,7 +5,7 @@
 - Project name: VehicularCombat
 - Unity version: Unity 6000.4.4f1
 - Active game object:
-  - Name: Gamemanager
+  - Name: Objetivo1
   - Tag: Untagged
   - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->
