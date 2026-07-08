@@ -6,6 +6,9 @@ public class HUDManager : MonoBehaviour
 {
     public static HUDManager Instance { get; private set; }
 
+    [Header("HUD")]
+    public Image hudImage;
+
     [Header("Tiempo")]
     public TextMeshProUGUI timerText;
 
@@ -21,6 +24,13 @@ public class HUDManager : MonoBehaviour
     public TextMeshProUGUI ammoText;
     private int currentAmmo;
     private int maxAmmo;
+
+    [Header("Mapa")]
+    public Image imagenDeZona;
+
+    public Sprite spriteZona1;
+    public Sprite spriteZona2;
+    public Sprite spriteZona3;
 
     [Header("Monedas")]
     public TextMeshProUGUI coinsText;
@@ -44,7 +54,8 @@ public class HUDManager : MonoBehaviour
         if (seconds < 0) seconds = 0;
         int m = Mathf.FloorToInt(seconds / 60);
         int s = Mathf.FloorToInt(seconds % 60);
-        timerText.text = $"{m:00}:{s:00}";
+        int ms = Mathf.FloorToInt((seconds % 1) * 60);
+        timerText.text = $"{m:00}:{s:00}:{ms:00}";
         timerText.color = seconds <= 30f ? Color.red : Color.white;
     }
 
@@ -102,10 +113,39 @@ public class HUDManager : MonoBehaviour
         icon.color = destroyedColor;
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        // Identificamos la zona usando el nombre del objeto o un Tag personalizado
+        if (other.CompareTag("Player")) // Asegúrate de que el jugador tiene este Tag
+        {
+            // Opcional: Esto detecta qué trigger tocó evaluando el nombre del objeto
+            if (other.gameObject.tag == "ZonaATrigger")
+            {
+                CambiarSprite(spriteZona1);
+            }
+            else if (other.gameObject.tag == "ZonaBTrigger")
+            {
+                CambiarSprite(spriteZona2);
+            }
+            else if (other.gameObject.tag == "ZonaCTrigger")
+            {
+                CambiarSprite(spriteZona3);
+            }
+        }
+    }
+
+    private void CambiarSprite(Sprite nuevoSprite)
+    {
+        if (imagenDeZona != null && nuevoSprite != null)
+        {
+            imagenDeZona.sprite = nuevoSprite; // Cambia la imagen asignada
+        }
+    }
+
     // ── Monedas ───────────────────────────────────────────────────────────────
     public void UpdateCoins(int amount)
-    {
-        if (coinsText != null)
-            coinsText.text = $"¢ {amount}";
-    }
+        {
+            if (coinsText != null)
+                coinsText.text = $"¢ {amount}";
+        }
 }
