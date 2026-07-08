@@ -27,6 +27,9 @@ namespace VehicularCombat
         [SerializeField] private float minimumPitch = -10f;
         [SerializeField] private float maximumPitch = 35f;
 
+        [SerializeField, Tooltip("Compensación de altura manual. Dejar en 0 si la hitbox está centrada.")]
+        private Vector3 aimOffset = Vector3.zero;
+
         [Header("Predictive Aiming (Leading)")]
         [SerializeField, Tooltip("Activar para disparar a donde el jugador VA a estar.")]
         private bool usePredictiveAiming = true;
@@ -66,7 +69,7 @@ namespace VehicularCombat
         {
             if (target == null || turretYawPivot == null) return;
 
-            Vector3 baseAimPoint = target.position + (Vector3.up * 1f);
+            Vector3 baseAimPoint = target.position + aimOffset;
 
             if (usePredictiveAiming && targetRb != null)
             {
@@ -74,14 +77,16 @@ namespace VehicularCombat
                 float distanceToTarget = Vector3.Distance(turretYawPivot.position, baseAimPoint);
                 float timeToTarget = distanceToTarget / projectileSpeed;
 
+                Vector3 flatVelocity = targetRb.linearVelocity;
+                flatVelocity.y = 0f;
                 // Movemos el punto de apuntado sumándole la velocidad del jugador multiplicada por el tiempo
-                baseAimPoint += targetRb.linearVelocity * timeToTarget;
+                baseAimPoint += flatVelocity * timeToTarget;
             }
 
             // 1. Calcular el margen de error orgánico (Perlin Noise)
             // Mathf.PerlinNoise devuelve valores entre 0 y 1. Multiplicamos * 2 - 1 para que vaya de -1 a 1.
             float noiseX = Mathf.PerlinNoise(Time.time * inaccuracySpeed, noiseOffset) * 2f - 1f;
-            float noiseY = Mathf.PerlinNoise(noiseOffset, Time.time * inaccuracySpeed) * 2f - 1f;
+            float noiseY = (Mathf.PerlinNoise(noiseOffset, Time.time * inaccuracySpeed) * 2f - 1f) * 0.1f;
             float noiseZ = Mathf.PerlinNoise(Time.time * inaccuracySpeed + 100f, noiseOffset + 100f) * 2f - 1f;
 
             currentInaccuracyOffset = new Vector3(noiseX, noiseY, noiseZ) * inaccuracyRadius;

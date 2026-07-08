@@ -55,6 +55,8 @@ namespace VehicularCombat
             SpawnOptionalEffect(hitEffectPrefab);
             damaged?.Invoke(CurrentHealth);
 
+            Debug.Log($"[{name}] recibió {amount} de daño. Vida restante: {CurrentHealth} / {maximumHealth}");
+
             if (CurrentHealth <= 0)
             {
                 Die();

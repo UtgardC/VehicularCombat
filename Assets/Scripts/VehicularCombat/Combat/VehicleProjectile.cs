@@ -107,6 +107,9 @@ namespace VehicularCombat
 
             if (TryGetDamageable(other, out DamageableTarget damageableTarget))
             {
+                string tirador = ownerRoot != null ? ownerRoot.name : "BALA SUELTA EN LA ESCENA";
+                Debug.LogWarning($"[REPORTE DE DAÑO] La bala de '{tirador}' golpeó a '{other.transform.root.name}'");
+
                 damageableTarget.ReceiveDamage(damage);
             }
 
@@ -127,7 +130,29 @@ namespace VehicularCombat
 
         private bool ShouldIgnoreCollider(Collider hitCollider)
         {
-            return ownerRoot != null && hitCollider.transform.IsChildOf(ownerRoot);
+            // Si el proyectil se spawneó suelto en la escena sin dueño, no ignora a nadie
+            if (ownerRoot == null)
+            {
+                return false;
+            }
+
+            // 1. Ignorar el propio vehículo (Para que el que dispara no se vuele a sí mismo)
+            if (hitCollider.transform.IsChildOf(ownerRoot))
+            {
+                return true;
+            }
+
+            // 2. Sistema Anti Fuego Amigo
+            // Buscamos la raíz (el objeto padre principal) del objeto que recibió el tiro
+            Transform hitRoot = hitCollider.transform.root;
+
+            // Si el que disparó tiene la etiqueta "Enemy" y el que recibe el tiro también, la bala se anula y lo ignora
+            if (ownerRoot.CompareTag("Enemy") && hitRoot.CompareTag("Enemy"))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private void SpawnImpactEffect(Vector3 hitPoint, Vector3 hitNormal)
