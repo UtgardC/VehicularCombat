@@ -5,7 +5,7 @@
 - Project name: VehicularCombat
 - Unity version: Unity 6000.4.4f1
 - Active game object:
-  - Name: Objetivo1
+  - Name: mapamesh
   - Tag: Untagged
-  - Layer: Default
+  - Layer: Map
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

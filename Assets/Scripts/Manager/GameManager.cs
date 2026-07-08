@@ -21,11 +21,12 @@ public class GameManager : MonoBehaviour
     public delegate void OnGameStateChanged(GameState newState);
     public event OnGameStateChanged GameStateChanged;
 
-    private void Start()
+    public event System.Action OnFinalZoneUnlocked;
+
+    void Start()
     {
         StartRun();
     }
-
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -73,6 +74,7 @@ public class GameManager : MonoBehaviour
     {
         finalZoneUnlocked = true;
         MapManager.Instance?.EnableFinalZone();
+        OnFinalZoneUnlocked?.Invoke();
         Debug.Log("Zona final desbloqueada.");
     }
 
