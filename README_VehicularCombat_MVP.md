@@ -138,6 +138,30 @@ Valores sugeridos:
 - Use Gravity: desactivado
 - Collision Detection: `Continuous Speculative`
 
+## Enemigos automaticos
+
+La IA reutiliza `ArcadeVehicleController` y `VehicleWeapon` mediante `VehicleInputProvider`; no necesita acciones del Input System.
+
+En el root de cada enemigo agrega:
+
+- `Rigidbody` y collider, con la misma configuracion fisica base del jugador.
+- `EnemyVehicleBrain`.
+- `ArcadeVehicleController`, usando `EnemyVehicleBrain` como `Input Reader`.
+- `VehicleWeapon`, usando `EnemyVehicleBrain` como `Input Reader`.
+- `DamageableTarget` para su vida.
+
+En la jerarquia visual de la torreta agrega `EnemyTurretAim1` y asigna:
+
+- `Target`: opcional; si queda vacio, `EnemyVehicleBrain` busca una vez el `VehicleInputReader` activo al comenzar.
+- `Turret Yaw Pivot`.
+- `Turret Pitch Pivot`: opcional.
+- `Ignored Root`: root del enemigo.
+- `Projectile Speed`: el mismo valor configurado en su `VehicleWeapon`.
+
+Asigna tambien ese `EnemyTurretAim1` al campo `Turret Aim` de `EnemyVehicleBrain`. El cerebro persigue al jugador, dispara dentro de `Engage Range`, intenta embestirlo y retrocede brevemente al acercarse demasiado.
+
+Los proyectiles de un enemigo ignoran automaticamente vehiculos que tambien tengan `EnemyVehicleBrain`, sin depender de tags. Si impactan al jugador, aplican dano al `PlayerHealth` actual.
+
 ## Objetivos
 
 Crea cinco objetivos estaticos con:
@@ -177,7 +201,9 @@ Presiona R para reiniciar
 
 ## Limitaciones conocidas
 
-- No hay IA, enemigos moviles, suspension, WheelColliders, minas, power-ups ni pooling.
+- La IA no usa NavMesh ni evita obstaculos; conduce directamente hacia el objetivo y puede trabarse con geometria compleja.
+- Los enemigos se configuran manualmente en escena; la rama de origen no contenia un prefab reutilizable, solo una escena de prueba.
+- No hay suspension, WheelColliders, minas, power-ups ni pooling.
 - El pitch de la torreta asume que el canon apunta localmente hacia `+Z` y rota sobre el eje local `X`.
 - El blend exacto entre camaras depende de la configuracion del `CinemachineBrain`.
 - Si no se asignan las `InputActionReference` del `VehicleInputReader`, los scripts no leen ningun fallback de teclado o mouse para gameplay.

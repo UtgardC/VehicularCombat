@@ -13,6 +13,10 @@ namespace VehicularCombat
         private float timeSinceLastHit;
         private bool isDead = false;
 
+        public event System.Action Died;
+        public float CurrentHealth => currentHealth;
+        public bool IsDead => isDead;
+
         void Start()
         {
             currentHealth = maxHealth;
@@ -59,10 +63,8 @@ namespace VehicularCombat
         private void Die()
         {
             isDead = true;
-            Debug.Log("💀 ¡El jugador ha sido destruido!");
-
-            // Acá podés avisarle a tu GameManager que el nivel se perdió
-            // global::GameManager.Instance?.SetState(GameManager.GameState.GameOver);
+            Died?.Invoke();
+            global::GameManager.Instance?.TriggerDefeat("Nave destruida");
         }
     }
 }

@@ -6,8 +6,8 @@ namespace VehicularCombat
     public sealed class VehicleWeapon : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField, Tooltip("Central input reader for the Vehicle action map.")]
-        private VehicleInputReader inputReader;
+        [SerializeField, Tooltip("Input source used by this weapon. Assign VehicleInputReader for the player or EnemyVehicleBrain for AI.")]
+        private VehicleInputProvider inputReader;
 
         [SerializeField, Tooltip("Projectile spawn point. Its forward direction is used as shot direction.")]
         private Transform firePoint;
@@ -40,13 +40,16 @@ namespace VehicularCombat
         [SerializeField, Tooltip("Prevent mouse clicks from firing while the cursor is unlocked.")]
         private bool requireLockedCursor = true;
 
-        // --- NUEVO: Sección de Munición y Recarga ---
+        // --- NUEVO: Seccion de Municion y Recarga ---
         [Header("Ammo & Reloading")]
-        [SerializeField, Min(1), Tooltip("Tamaño del cargador.")]
+        [SerializeField, Min(1), Tooltip("Tamano del cargador.")]
         private int maxAmmo = 30;
 
         [SerializeField, Min(0f), Tooltip("Tiempo que tarda en recargar en segundos.")]
         private float reloadTime = 2f;
+
+        [SerializeField, Tooltip("Send ammunition changes to the player HUD. AI input providers are always excluded.")]
+        private bool reportAmmoToHud = true;
 
         private int currentAmmo;
         private bool isReloading;
@@ -65,11 +68,15 @@ namespace VehicularCombat
         private bool warnedMissingProjectile;
 
         public event Action Fired;
+        public event Action<int, int, bool> AmmoChanged;
         public float LastFireTime { get; private set; } = float.NegativeInfinity;
+        public int CurrentAmmo => currentAmmo;
+        public int MaximumAmmo => maxAmmo;
+        public bool IsReloading => isReloading;
 
         private void Reset()
         {
-            inputReader = GetComponentInParent<VehicleInputReader>();
+            inputReader = GetComponentInParent<VehicleInputProvider>();
             vehicleRigidbody = GetComponentInParent<Rigidbody>();
             ownerRoot = transform.root;
         }
@@ -78,7 +85,7 @@ namespace VehicularCombat
         {
             if (inputReader == null)
             {
-                inputReader = GetComponentInParent<VehicleInputReader>();
+                inputReader = GetComponentInParent<VehicleInputProvider>();
             }
 
             if (vehicleRigidbody == null)
@@ -92,16 +99,16 @@ namespace VehicularCombat
             }
         }
 
-        // --- NUEVO: Inicializamos la munición al arrancar ---
+        // --- NUEVO: Inicializamos la municion al arrancar ---
         private void Start()
         {
             currentAmmo = maxAmmo;
-            global::HUDManager.Instance?.InitAmmo(maxAmmo);
+            NotifyAmmoChanged(true);
         }
 
         private void Update()
         {
-            // Si el juego está pausado o el HUDManager dice que no estamos jugando, puedes agregar el chequeo aquí
+            // Si el juego esta pausado o el HUDManager dice que no estamos jugando, puedes agregar el chequeo aqui
 
             if (inputReader == null)
             {
@@ -116,10 +123,10 @@ namespace VehicularCombat
                 {
                     CompleteReload();
                 }
-                return; // Bloquea los disparos mientras se está recargando
+                return; // Bloquea los disparos mientras se esta recargando
             }
 
-            if (requireLockedCursor && Cursor.lockState != CursorLockMode.Locked)
+            if (requireLockedCursor && inputReader is VehicleInputReader && Cursor.lockState != CursorLockMode.Locked)
             {
                 return;
             }
@@ -138,7 +145,7 @@ namespace VehicularCombat
                 return false;
             }
 
-            // --- NUEVO: Chequeo extra por seguridad (no debería disparar si no hay balas) ---
+            // --- NUEVO: Chequeo extra por seguridad (no deberia disparar si no hay balas) ---
             if (currentAmmo <= 0)
             {
                 StartReload();
@@ -161,11 +168,11 @@ namespace VehicularCombat
                 muzzleFlash.Play(true);
             }
 
-            // --- NUEVO: Descontamos munición y actualizamos la UI ---
+            // --- NUEVO: Descontamos municion y actualizamos la UI ---
             currentAmmo--;
-            global::HUDManager.Instance?.ConsumeAmmo();
+            NotifyAmmoChanged(false);
 
-            // Si nos quedamos sin balas tras este disparo, iniciamos la recarga automáticamente
+            // Si nos quedamos sin balas tras este disparo, iniciamos la recarga automaticamente
             if (currentAmmo <= 0)
             {
                 StartReload();
@@ -180,17 +187,44 @@ namespace VehicularCombat
         // --- NUEVO: Funciones de recarga ---
         private void StartReload()
         {
+            if (isReloading)
+            {
+                return;
+            }
+
             isReloading = true;
             reloadEndTime = Time.time + reloadTime;
+            NotifyAmmoChanged(false);
         }
 
         private void CompleteReload()
         {
             currentAmmo = maxAmmo;
             isReloading = false;
+            NotifyAmmoChanged(false);
+        }
 
-            // Avisamos a la UI que la recarga terminó
-            global::HUDManager.Instance?.ReloadComplete();
+        private void NotifyAmmoChanged(bool initializeHud)
+        {
+            AmmoChanged?.Invoke(currentAmmo, maxAmmo, isReloading);
+
+            if (!reportAmmoToHud || inputReader is not VehicleInputReader)
+            {
+                return;
+            }
+
+            if (initializeHud)
+            {
+                global::HUDManager.Instance?.InitAmmo(maxAmmo);
+            }
+            else if (!isReloading && currentAmmo == maxAmmo)
+            {
+                global::HUDManager.Instance?.ReloadComplete();
+            }
+            else if (!isReloading)
+            {
+                global::HUDManager.Instance?.ConsumeAmmo();
+            }
         }
 
         private bool HasRequiredReferences()
@@ -219,7 +253,7 @@ namespace VehicularCombat
                 return;
             }
 
-            Debug.LogWarning($"{nameof(VehicleWeapon)} on {name} has no {nameof(VehicleInputReader)} assigned.", this);
+            Debug.LogWarning($"{nameof(VehicleWeapon)} on {name} has no {nameof(VehicleInputProvider)} assigned.", this);
             warnedMissingInput = true;
         }
 
@@ -243,6 +277,12 @@ namespace VehicularCombat
 
             Debug.LogWarning($"{nameof(VehicleWeapon)} on {name} cannot fire because Projectile Prefab is missing.", this);
             warnedMissingProjectile = true;
+        }
+
+        private void OnValidate()
+        {
+            maxAmmo = Mathf.Max(1, maxAmmo);
+            reloadTime = Mathf.Max(0f, reloadTime);
         }
     }
 }

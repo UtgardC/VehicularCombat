@@ -29,6 +29,7 @@ namespace VehicularCombat
         private int damage;
         private bool initialized;
         private bool hasImpacted;
+        private bool ownerIsEnemy;
 
         private void Awake()
         {
@@ -64,6 +65,7 @@ namespace VehicularCombat
             initialized = true;
             damage = Mathf.Max(0, damageAmount);
             ownerRoot = projectileOwnerRoot;
+            ownerIsEnemy = ownerRoot != null && ownerRoot.GetComponentInChildren<EnemyVehicleBrain>(true) != null;
             impactEffectPrefab = impactEffectOverride != null ? impactEffectOverride : defaultImpactEffectPrefab;
 
             if (projectileRigidbody == null)
@@ -109,6 +111,10 @@ namespace VehicularCombat
             {
                 damageableTarget.ReceiveDamage(damage);
             }
+            else if (TryGetPlayerHealth(other, out PlayerHealth playerHealth))
+            {
+                playerHealth.ReceiveDamage(damage);
+            }
 
             SpawnImpactEffect(hitPoint, hitNormal);
             Destroy(gameObject);
@@ -127,7 +133,28 @@ namespace VehicularCombat
 
         private bool ShouldIgnoreCollider(Collider hitCollider)
         {
-            return ownerRoot != null && hitCollider.transform.IsChildOf(ownerRoot);
+            if (ownerRoot == null)
+            {
+                return false;
+            }
+
+            if (hitCollider.transform == ownerRoot || hitCollider.transform.IsChildOf(ownerRoot))
+            {
+                return true;
+            }
+
+            return ownerIsEnemy && hitCollider.GetComponentInParent<EnemyVehicleBrain>() != null;
+        }
+
+        private bool TryGetPlayerHealth(Collider hitCollider, out PlayerHealth playerHealth)
+        {
+            if (hitCollider.TryGetComponent(out playerHealth))
+            {
+                return true;
+            }
+
+            playerHealth = hitCollider.GetComponentInParent<PlayerHealth>();
+            return playerHealth != null;
         }
 
         private void SpawnImpactEffect(Vector3 hitPoint, Vector3 hitNormal)

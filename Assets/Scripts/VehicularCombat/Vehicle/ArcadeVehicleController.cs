@@ -7,8 +7,8 @@ namespace VehicularCombat
     public sealed class ArcadeVehicleController : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField, Tooltip("Central input reader for the Vehicle action map.")]
-        private VehicleInputReader inputReader;
+        [SerializeField, Tooltip("Input source used by this vehicle. Assign VehicleInputReader for the player or EnemyVehicleBrain for AI.")]
+        private VehicleInputProvider inputReader;
 
         [SerializeField, Tooltip("Rigidbody moved by this controller. Defaults to the Rigidbody on this GameObject.")]
         private Rigidbody vehicleRigidbody;
@@ -39,6 +39,12 @@ namespace VehicularCombat
         [SerializeField, Range(0.1f, 1f), Tooltip("Steering multiplier when close to maximum motor forward speed.")]
         private float highSpeedSteeringMultiplier = 0.55f;
 
+        [SerializeField, Min(0f), Tooltip("How quickly raw steering input reaches the value used by physics. Higher is more responsive.")]
+        private float steeringInputResponse = 12f;
+
+        [SerializeField, Range(0f, 0.25f), Tooltip("Small steering values below this are ignored.")]
+        private float steeringDeadZone = 0.02f;
+
         [Header("Grip And Handbrake")]
         [SerializeField, Min(0f), Tooltip("Artificial lateral grip used during normal driving.")]
         private float normalLateralGrip = 8f;
@@ -54,17 +60,20 @@ namespace VehicularCombat
         private bool enforceUprightRotationConstraints = true;
 
         private bool warnedMissingInput;
+        private float smoothedSteeringInput;
 
         // --- NUEVO: Referencia al script del Turbo ---
         private PlayerTurbo playerTurbo;
 
         public Rigidbody VehicleRigidbody => vehicleRigidbody;
-        public float ForwardSpeed => vehicleRigidbody != null ? Vector3.Dot(vehicleRigidbody.linearVelocity, transform.forward) : 0f;
+        public float ForwardSpeed => vehicleRigidbody != null
+            ? Vector3.Dot(vehicleRigidbody.linearVelocity, vehicleRigidbody.rotation * Vector3.forward)
+            : 0f;
 
         private void Reset()
         {
             vehicleRigidbody = GetComponent<Rigidbody>();
-            inputReader = GetComponent<VehicleInputReader>();
+            inputReader = GetComponent<VehicleInputProvider>();
             ApplyRecommendedRigidbodySettings();
         }
 
@@ -77,7 +86,7 @@ namespace VehicularCombat
 
             if (inputReader == null)
             {
-                inputReader = GetComponent<VehicleInputReader>();
+                inputReader = GetComponent<VehicleInputProvider>();
             }
 
             // Buscamos el componente del turbo en la nave
@@ -105,43 +114,54 @@ namespace VehicularCombat
 
             float accelerateInput = inputReader.Accelerate;
             float reverseInput = inputReader.Reverse;
-            float steeringInput = inputReader.Steering;
+            float steeringInput = ApplySteeringDeadZone(inputReader.Steering);
             bool handbrakeHeld = inputReader.HandbrakeHeld;
 
             float driveInput = accelerateInput - reverseInput;
-            float forwardSpeed = Vector3.Dot(vehicleRigidbody.linearVelocity, transform.forward);
+            Vector3 forward = vehicleRigidbody.rotation * Vector3.forward;
+            float forwardSpeed = Vector3.Dot(vehicleRigidbody.linearVelocity, forward);
 
-            // --- NUEVO: Calculamos la velocidad y aceleración efectivas con el Turbo ---
+            smoothedSteeringInput = Mathf.MoveTowards(
+                smoothedSteeringInput,
+                steeringInput,
+                steeringInputResponse * Time.fixedDeltaTime);
+
+            // --- NUEVO: Calculamos la velocidad y aceleracion efectivas con el Turbo ---
             float effectiveMaxSpeed = maximumMotorForwardSpeed;
             float effectiveAcceleration = acceleration;
 
             if (playerTurbo != null && playerTurbo.IsBoosting)
             {
                 effectiveMaxSpeed += playerTurbo.TurboSpeedBonus;
-                // Le sumamos el bonus a la aceleración para que tenga un "empuje" real al activarse
+                // Le sumamos el bonus a la aceleracion para que tenga un "empuje" real al activarse
                 effectiveAcceleration += playerTurbo.TurboSpeedBonus;
             }
 
             // Pasamos los valores efectivos a las funciones
-            ApplyMotorForce(driveInput, forwardSpeed, effectiveMaxSpeed, effectiveAcceleration);
-            ApplySteering(steeringInput, forwardSpeed, effectiveMaxSpeed);
+            ApplyMotorForce(driveInput, forwardSpeed, forward, effectiveMaxSpeed, effectiveAcceleration);
+            ApplySteering(smoothedSteeringInput, forwardSpeed, effectiveMaxSpeed);
             ApplyArtificialGrip(handbrakeHeld);
         }
 
-        // --- MODIFICADO: Ahora recibe la velocidad máxima y aceleración actualizadas ---
-        private void ApplyMotorForce(float driveInput, float forwardSpeed, float currentMaxSpeed, float currentAcceleration)
+        // --- MODIFICADO: Ahora recibe la velocidad maxima y aceleracion actualizadas ---
+        private void ApplyMotorForce(
+            float driveInput,
+            float forwardSpeed,
+            Vector3 forward,
+            float currentMaxSpeed,
+            float currentAcceleration)
         {
             if (driveInput > 0f && forwardSpeed < currentMaxSpeed)
             {
-                vehicleRigidbody.AddForce(transform.forward * (driveInput * currentAcceleration), ForceMode.Acceleration);
+                vehicleRigidbody.AddForce(forward * (driveInput * currentAcceleration), ForceMode.Acceleration);
             }
             else if (driveInput < 0f && forwardSpeed > -maximumMotorReverseSpeed)
             {
-                vehicleRigidbody.AddForce(transform.forward * (driveInput * reverseAcceleration), ForceMode.Acceleration);
+                vehicleRigidbody.AddForce(forward * (driveInput * reverseAcceleration), ForceMode.Acceleration);
             }
         }
 
-        // --- MODIFICADO: Ahora recibe la velocidad máxima actualizada para no endurecer de más la dirección ---
+        // --- MODIFICADO: Ahora recibe la velocidad maxima actualizada para no endurecer de mas la direccion ---
         private void ApplySteering(float steeringInput, float forwardSpeed, float currentMaxSpeed)
         {
             float absoluteForwardSpeed = Mathf.Abs(forwardSpeed);
@@ -179,7 +199,8 @@ namespace VehicularCombat
 
         private void ApplyArtificialGrip(bool handbrakeHeld)
         {
-            Vector3 localVelocity = transform.InverseTransformDirection(vehicleRigidbody.linearVelocity);
+            Quaternion bodyRotation = vehicleRigidbody.rotation;
+            Vector3 localVelocity = Quaternion.Inverse(bodyRotation) * vehicleRigidbody.linearVelocity;
 
             float lateralGrip = handbrakeHeld ? handbrakeLateralGrip : normalLateralGrip;
             float lateralBlend = 1f - Mathf.Exp(-lateralGrip * Time.fixedDeltaTime);
@@ -190,7 +211,12 @@ namespace VehicularCombat
                 localVelocity.z = Mathf.MoveTowards(localVelocity.z, 0f, handbrakeForce * Time.fixedDeltaTime);
             }
 
-            vehicleRigidbody.linearVelocity = transform.TransformDirection(localVelocity);
+            vehicleRigidbody.linearVelocity = bodyRotation * localVelocity;
+        }
+
+        private float ApplySteeringDeadZone(float steeringInput)
+        {
+            return Mathf.Abs(steeringInput) >= steeringDeadZone ? steeringInput : 0f;
         }
 
         private void ApplyRecommendedRigidbodySettings()
@@ -216,7 +242,7 @@ namespace VehicularCombat
                 return;
             }
 
-            Debug.LogWarning($"{nameof(ArcadeVehicleController)} on {name} has no {nameof(VehicleInputReader)} assigned.", this);
+            Debug.LogWarning($"{nameof(ArcadeVehicleController)} on {name} has no {nameof(VehicleInputProvider)} assigned.", this);
             warnedMissingInput = true;
         }
 
@@ -225,6 +251,7 @@ namespace VehicularCombat
             maximumMotorForwardSpeed = Mathf.Max(0f, maximumMotorForwardSpeed);
             maximumMotorReverseSpeed = Mathf.Max(0f, maximumMotorReverseSpeed);
             speedForFullSteering = Mathf.Max(0.01f, speedForFullSteering);
+            steeringInputResponse = Mathf.Max(0f, steeringInputResponse);
         }
     }
 }
