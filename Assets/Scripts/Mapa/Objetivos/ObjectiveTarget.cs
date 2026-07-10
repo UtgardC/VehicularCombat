@@ -1,14 +1,10 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 
 namespace VehicularCombat
 {
     [RequireComponent(typeof(DamageableTarget))]
     public sealed class ObjectiveTarget : MonoBehaviour
     {
-        [Header("HUD")]
-        [SerializeField, Tooltip("Õndice del Ìcono en el HUD (0, 1 o 2)")]
-        private int hudIndex = 0;
-
         private DamageableTarget damageable;
 
         void Awake()
@@ -25,8 +21,9 @@ namespace VehicularCombat
 
         void OnDied(DamageableTarget _)
         {
+            // Ahora el objetivo solo le avisa al GameManager.
+            // El GameManager se encargar√° de hacer la matem√°tica y actualizar el HUDManager.
             global::GameManager.Instance?.RegisterObjectiveDestroyed();
-            global::HUDManager.Instance?.MarkObjectiveDestroyed(hudIndex);
         }
     }
 }

@@ -46,10 +46,10 @@ public class RunStartScreen : MonoBehaviour
     {
         if (!inputEnabled) return;
 
-        if (Input.GetKeyDown(KeyCode.Space))
-            StartRun();
-        else if (Input.GetKeyDown(KeyCode.Escape))
-            ReturnToHub();
+        // if (Input.GetKeyDown(KeyCode.Space))
+           // StartRun();
+        // else if (Input.GetKeyDown(KeyCode.Escape))
+           //  ReturnToHub();
     }
 
     // ── Acciones ──────────────────────────────────────────────────────────────

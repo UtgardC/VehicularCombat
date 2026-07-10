@@ -22,6 +22,10 @@ namespace VehicularCombat
         [SerializeField, Tooltip("Vehicle/Handbrake action. Recommended type: Button.")]
         private InputActionReference handbrakeActionReference;
 
+        // --- NUEVO: Referencia para la acción del Turbo ---
+        [SerializeField, Tooltip("Vehicle/Turbo action. Recommended type: Button.")]
+        private InputActionReference turboActionReference;
+
         [SerializeField, Tooltip("Vehicle/Look action. Recommended type: Value, control type: Vector2.")]
         private InputActionReference lookActionReference;
 
@@ -35,6 +39,7 @@ namespace VehicularCombat
         private InputAction reverseAction;
         private InputAction steerAction;
         private InputAction handbrakeAction;
+        private InputAction turboAction; // <-- NUEVO
         private InputAction lookAction;
         private InputAction fireAction;
         private InputAction restartAction;
@@ -49,6 +54,10 @@ namespace VehicularCombat
         public float Reverse => ReadClamped01(reverseAction);
         public float Steering => ReadClampedAxis(steerAction);
         public bool HandbrakeHeld => handbrakeAction != null && handbrakeAction.IsPressed();
+
+        // --- NUEVO: Propiedad pública para que PlayerTurbo la lea ---
+        public bool TurboHeld => turboAction != null && turboAction.IsPressed();
+
         public Vector2 LookInput => lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
         public bool LookInputUsesPointerDelta => lookInputUsesPointerDelta;
         public bool FireHeld => fireAction != null && fireAction.IsPressed();
@@ -83,6 +92,7 @@ namespace VehicularCombat
             reverseAction = ResolveAction(reverseActionReference, "Reverse");
             steerAction = ResolveAction(steerActionReference, "Steer");
             handbrakeAction = ResolveAction(handbrakeActionReference, "Handbrake");
+            turboAction = ResolveAction(turboActionReference, "Turbo"); // <-- NUEVO
             lookAction = ResolveAction(lookActionReference, "Look");
             fireAction = ResolveAction(fireActionReference, "Fire");
             restartAction = ResolveAction(restartActionReference, "Restart");
@@ -107,6 +117,7 @@ namespace VehicularCombat
             SetActionEnabled(reverseAction, enabled);
             SetActionEnabled(steerAction, enabled);
             SetActionEnabled(handbrakeAction, enabled);
+            SetActionEnabled(turboAction, enabled); // <-- NUEVO
             SetActionEnabled(lookAction, enabled);
             SetActionEnabled(fireAction, enabled);
             SetActionEnabled(restartAction, enabled);

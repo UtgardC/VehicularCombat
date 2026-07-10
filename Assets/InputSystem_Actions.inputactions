@@ -86,6 +86,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Turbo",
+                    "type": "Button",
+                    "id": "90fe6eb0-28d2-45e0-9f6b-cb501e0d04f9",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -471,6 +480,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Crouch",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2038341a-d999-4453-9b9c-b0b965990f96",
+                    "path": "<Keyboard>/leftShift",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Turbo",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

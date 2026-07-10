@@ -5,7 +5,7 @@
 - Project name: VehicularCombat
 - Unity version: Unity 6000.4.4f1
 - Active game object:
-  - Name: ZonaATrigger (1)
-  - Tag: ZonaATrigger
+  - Name: Main Camera
+  - Tag: MainCamera
   - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

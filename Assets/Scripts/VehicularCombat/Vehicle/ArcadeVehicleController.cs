@@ -55,6 +55,9 @@ namespace VehicularCombat
 
         private bool warnedMissingInput;
 
+        // --- NUEVO: Referencia al script del Turbo ---
+        private PlayerTurbo playerTurbo;
+
         public Rigidbody VehicleRigidbody => vehicleRigidbody;
         public float ForwardSpeed => vehicleRigidbody != null ? Vector3.Dot(vehicleRigidbody.linearVelocity, transform.forward) : 0f;
 
@@ -76,6 +79,9 @@ namespace VehicularCombat
             {
                 inputReader = GetComponent<VehicleInputReader>();
             }
+
+            // Buscamos el componente del turbo en la nave
+            playerTurbo = GetComponent<PlayerTurbo>();
 
             if (enforceUprightRotationConstraints && vehicleRigidbody != null)
             {
@@ -105,16 +111,29 @@ namespace VehicularCombat
             float driveInput = accelerateInput - reverseInput;
             float forwardSpeed = Vector3.Dot(vehicleRigidbody.linearVelocity, transform.forward);
 
-            ApplyMotorForce(driveInput, forwardSpeed);
-            ApplySteering(steeringInput, forwardSpeed);
+            // --- NUEVO: Calculamos la velocidad y aceleración efectivas con el Turbo ---
+            float effectiveMaxSpeed = maximumMotorForwardSpeed;
+            float effectiveAcceleration = acceleration;
+
+            if (playerTurbo != null && playerTurbo.IsBoosting)
+            {
+                effectiveMaxSpeed += playerTurbo.TurboSpeedBonus;
+                // Le sumamos el bonus a la aceleración para que tenga un "empuje" real al activarse
+                effectiveAcceleration += playerTurbo.TurboSpeedBonus;
+            }
+
+            // Pasamos los valores efectivos a las funciones
+            ApplyMotorForce(driveInput, forwardSpeed, effectiveMaxSpeed, effectiveAcceleration);
+            ApplySteering(steeringInput, forwardSpeed, effectiveMaxSpeed);
             ApplyArtificialGrip(handbrakeHeld);
         }
 
-        private void ApplyMotorForce(float driveInput, float forwardSpeed)
+        // --- MODIFICADO: Ahora recibe la velocidad máxima y aceleración actualizadas ---
+        private void ApplyMotorForce(float driveInput, float forwardSpeed, float currentMaxSpeed, float currentAcceleration)
         {
-            if (driveInput > 0f && forwardSpeed < maximumMotorForwardSpeed)
+            if (driveInput > 0f && forwardSpeed < currentMaxSpeed)
             {
-                vehicleRigidbody.AddForce(transform.forward * (driveInput * acceleration), ForceMode.Acceleration);
+                vehicleRigidbody.AddForce(transform.forward * (driveInput * currentAcceleration), ForceMode.Acceleration);
             }
             else if (driveInput < 0f && forwardSpeed > -maximumMotorReverseSpeed)
             {
@@ -122,7 +141,8 @@ namespace VehicularCombat
             }
         }
 
-        private void ApplySteering(float steeringInput, float forwardSpeed)
+        // --- MODIFICADO: Ahora recibe la velocidad máxima actualizada para no endurecer de más la dirección ---
+        private void ApplySteering(float steeringInput, float forwardSpeed, float currentMaxSpeed)
         {
             float absoluteForwardSpeed = Mathf.Abs(forwardSpeed);
             if (absoluteForwardSpeed <= minimumSteeringSpeed)
@@ -131,9 +151,12 @@ namespace VehicularCombat
             }
 
             float movementFactor = Mathf.Clamp01(absoluteForwardSpeed / speedForFullSteering);
-            float highSpeedFactor = maximumMotorForwardSpeed > 0f
-                ? Mathf.Clamp01(absoluteForwardSpeed / maximumMotorForwardSpeed)
+
+            // Usamos currentMaxSpeed para calcular el highSpeedFactor
+            float highSpeedFactor = currentMaxSpeed > 0f
+                ? Mathf.Clamp01(absoluteForwardSpeed / currentMaxSpeed)
                 : 0f;
+
             float speedSteeringMultiplier = Mathf.Lerp(1f, highSpeedSteeringMultiplier, highSpeedFactor);
             float directionSign = Mathf.Sign(forwardSpeed);
 

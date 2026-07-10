@@ -6,7 +6,7 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
 
     [Header("Configuración de Run")]
-    public float runDuration = 180f;
+    public float runDuration = 300f;
     public int objectivesRequired = 3;
 
     [Header("Estado Actual (solo lectura)")]
@@ -14,6 +14,9 @@ public class GameManager : MonoBehaviour
     public int objectivesDestroyed;
     public bool finalZoneUnlocked;
     public bool isFinalMotorDestroyed;
+
+    [Header("Configuración de Objetivos")]
+    public int totalObjectives = 3;
 
     public enum GameState { Hub, WaitingToStart, Playing, Paused, Victory, Defeat }
     public GameState State { get; private set; }
@@ -66,8 +69,12 @@ public class GameManager : MonoBehaviour
         objectivesDestroyed++;
         CurrencyManager.Instance?.AddCoins(30);
 
+        global::HUDManager.Instance?.UpdateObjectiveText(objectivesDestroyed, objectivesRequired);
+
         if (objectivesDestroyed >= objectivesRequired)
+        {
             UnlockFinalZone();
+        }
     }
 
     void UnlockFinalZone()
@@ -115,7 +122,7 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene("HUBScene");
     }
 
-    void SetState(GameState newState)
+    public void SetState(GameState newState)
     {
         State = newState;
         GameStateChanged?.Invoke(newState);

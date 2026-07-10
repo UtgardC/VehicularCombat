@@ -40,6 +40,18 @@ namespace VehicularCombat
         [SerializeField, Tooltip("Prevent mouse clicks from firing while the cursor is unlocked.")]
         private bool requireLockedCursor = true;
 
+        // --- NUEVO: Sección de Munición y Recarga ---
+        [Header("Ammo & Reloading")]
+        [SerializeField, Min(1), Tooltip("Tamaño del cargador.")]
+        private int maxAmmo = 30;
+
+        [SerializeField, Min(0f), Tooltip("Tiempo que tarda en recargar en segundos.")]
+        private float reloadTime = 2f;
+
+        private int currentAmmo;
+        private bool isReloading;
+        private float reloadEndTime;
+
         [Header("Optional Feedback")]
         [SerializeField, Tooltip("Optional muzzle flash particle system attached to the weapon.")]
         private ParticleSystem muzzleFlash;
@@ -80,12 +92,31 @@ namespace VehicularCombat
             }
         }
 
+        // --- NUEVO: Inicializamos la munición al arrancar ---
+        private void Start()
+        {
+            currentAmmo = maxAmmo;
+            global::HUDManager.Instance?.InitAmmo(maxAmmo);
+        }
+
         private void Update()
         {
+            // Si el juego está pausado o el HUDManager dice que no estamos jugando, puedes agregar el chequeo aquí
+
             if (inputReader == null)
             {
                 WarnMissingInputOnce();
                 return;
+            }
+
+            // --- NUEVO: Manejo de la recarga en el tiempo ---
+            if (isReloading)
+            {
+                if (Time.time >= reloadEndTime)
+                {
+                    CompleteReload();
+                }
+                return; // Bloquea los disparos mientras se está recargando
             }
 
             if (requireLockedCursor && Cursor.lockState != CursorLockMode.Locked)
@@ -107,6 +138,13 @@ namespace VehicularCombat
                 return false;
             }
 
+            // --- NUEVO: Chequeo extra por seguridad (no debería disparar si no hay balas) ---
+            if (currentAmmo <= 0)
+            {
+                StartReload();
+                return false;
+            }
+
             if (!HasRequiredReferences())
             {
                 return false;
@@ -123,10 +161,36 @@ namespace VehicularCombat
                 muzzleFlash.Play(true);
             }
 
+            // --- NUEVO: Descontamos munición y actualizamos la UI ---
+            currentAmmo--;
+            global::HUDManager.Instance?.ConsumeAmmo();
+
+            // Si nos quedamos sin balas tras este disparo, iniciamos la recarga automáticamente
+            if (currentAmmo <= 0)
+            {
+                StartReload();
+            }
+
             LastFireTime = Time.time;
             nextAllowedFireTime = Time.time + fireCooldown;
             Fired?.Invoke();
             return true;
+        }
+
+        // --- NUEVO: Funciones de recarga ---
+        private void StartReload()
+        {
+            isReloading = true;
+            reloadEndTime = Time.time + reloadTime;
+        }
+
+        private void CompleteReload()
+        {
+            currentAmmo = maxAmmo;
+            isReloading = false;
+
+            // Avisamos a la UI que la recarga terminó
+            global::HUDManager.Instance?.ReloadComplete();
         }
 
         private bool HasRequiredReferences()

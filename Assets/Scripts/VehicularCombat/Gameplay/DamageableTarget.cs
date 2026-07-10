@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -38,10 +38,24 @@ namespace VehicularCombat
             ResetHealth();
         }
 
+        private void Start()
+        {
+            // Si este objeto es el jugador, forzamos al HUD a mostrar la vida real al iniciar
+            if (CompareTag("Player"))
+            {
+                global::HUDManager.Instance?.UpdateHealth(CurrentHealth, maximumHealth);
+            }
+        }
+
         public void ResetHealth()
         {
             CurrentHealth = maximumHealth;
             IsDead = false;
+
+            if (CompareTag("Player"))
+            {
+                global::HUDManager.Instance?.UpdateHealth(CurrentHealth, maximumHealth);
+            }
         }
 
         public void ReceiveDamage(int amount)
@@ -54,6 +68,12 @@ namespace VehicularCombat
             CurrentHealth = Mathf.Max(0, CurrentHealth - amount);
             SpawnOptionalEffect(hitEffectPrefab);
             damaged?.Invoke(CurrentHealth);
+
+            // 🔥 CONEXIÓN CON EL HUD: Si somos el jugador, actualizamos la barra de vida
+            if (CompareTag("Player"))
+            {
+                global::HUDManager.Instance?.UpdateHealth(CurrentHealth, maximumHealth);
+            }
 
             if (CurrentHealth <= 0)
             {
@@ -72,6 +92,11 @@ namespace VehicularCombat
             Died?.Invoke(this);
             died?.Invoke();
             SpawnOptionalEffect(deathEffectPrefab);
+
+            if (CompareTag("Player"))
+            {
+                global::HUDManager.Instance?.UpdateHealth(0, maximumHealth);
+            }
 
             if (destroyOnDeath)
             {
