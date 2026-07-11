@@ -218,6 +218,59 @@ Transform:
   - {fileID: 724358782}
   m_Father: {fileID: 556161281}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &38227659
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 38227660}
+  - component: {fileID: 38227661}
+  m_Layer: 0
+  m_Name: Hitbox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &38227660
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 38227659}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 927474495}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &38227661
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 38227659}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2, y: 1.5, z: 4}
+  m_Center: {x: 0, y: 0, z: 0.2}
 --- !u!1 &52635166
 GameObject:
   m_ObjectHideFlags: 0
@@ -1822,7 +1875,7 @@ GameObject:
   m_Component:
   - component: {fileID: 354925147}
   m_Layer: 0
-  m_Name: TorretaParte 2
+  m_Name: TorretaParte2E
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3277,7 +3330,7 @@ GameObject:
   - component: {fileID: 717772007}
   - component: {fileID: 717772006}
   m_Layer: 0
-  m_Name: "Ca\xF1on"
+  m_Name: "Ca\xF1on2"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4056,12 +4109,9 @@ GameObject:
   - component: {fileID: 927474497}
   - component: {fileID: 927474506}
   - component: {fileID: 927474503}
-  - component: {fileID: 927474501}
-  - component: {fileID: 927474499}
-  - component: {fileID: 927474498}
   - component: {fileID: 927474505}
   m_Layer: 0
-  m_Name: "Veh\xEDculo"
+  m_Name: Enemigo
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4081,6 +4131,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 521519085}
+  - {fileID: 38227660}
   m_Father: {fileID: 1971743909}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &927474497
@@ -4110,64 +4161,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 80
   m_CollisionDetection: 2
---- !u!114 &927474498
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 927474494}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: acdab298d55a4fc4c931a6511dce3341, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::VehicularCombat.PlayerTurbo
-  maxTurbo: 100
-  consumeRate: 50
-  regenRate: 10
-  regenDelay: 3
-  turboSpeedBonus: 20
-  inputReader: {fileID: 0}
---- !u!114 &927474499
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 927474494}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: acdf4bd121dab0440a3dc0a7685425c8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::VehicularCombat.PlayerSpeedometer
---- !u!114 &927474501
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 927474494}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8cd32ffd37289324ba1c947e25749b34, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::VehicularCombat.VehicleWeapon
-  inputReader: {fileID: 0}
-  firePoint: {fileID: 1584352124}
-  projectilePrefab: {fileID: 7419611872293979269, guid: 15a1c2fd3e6ed2347bf0a52a609f3907, type: 3}
-  vehicleRigidbody: {fileID: 927474497}
-  ownerRoot: {fileID: 927474495}
-  fireCooldown: 0.25
-  projectileSpeed: 20
-  projectileLifetime: 4
-  projectileDamage: 1
-  automaticFire: 1
-  requireLockedCursor: 0
-  maxAmmo: 30
-  reloadTime: 1
-  reportAmmoToHud: 1
-  muzzleFlash: {fileID: 0}
-  projectileImpactEffectPrefab: {fileID: 0}
 --- !u!114 &927474503
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4180,7 +4173,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7cd86b678301aa4e9488ae757583688, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VehicularCombat.ArcadeVehicleController
-  inputReader: {fileID: 0}
+  inputReader: {fileID: 927474506}
   vehicleRigidbody: {fileID: 927474497}
   acceleration: 100
   reverseAcceleration: 30
@@ -4255,7 +4248,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VehicularCombat.EnemyVehicleBrain
   target: {fileID: 1159924749}
   findPlayerOnStart: 1
-  turretAim: {fileID: 0}
+  turretAim: {fileID: 1401030426}
   engageRange: 50
   rammingRange: 15
   impactDistance: 4
@@ -6539,9 +6532,10 @@ GameObject:
   - component: {fileID: 1401030423}
   - component: {fileID: 1401030425}
   - component: {fileID: 1401030424}
+  - component: {fileID: 1401030427}
   - component: {fileID: 1401030426}
   m_Layer: 0
-  m_Name: TorretaParte1
+  m_Name: TorretaParte1E
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6632,19 +6626,47 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f5c1c937676046459092d1939b209d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VehicularCombat.EnemyTurretAim1
-  target: {fileID: 0}
-  turretYawPivot: {fileID: 0}
-  turretPitchPivot: {fileID: 0}
+  target: {fileID: 1423291899}
+  turretYawPivot: {fileID: 1401030423}
+  turretPitchPivot: {fileID: 354925147}
   ignoredRoot: {fileID: 1971743909}
   yawRotationSpeed: 180
   pitchRotationSpeed: 90
   minimumPitch: -10
   maximumPitch: 35
-  aimOffset: {x: 0, y: 0, z: 0}
+  aimOffset: {x: 0, y: -0.5, z: 0}
   usePredictiveAiming: 1
   projectileSpeed: 35
   inaccuracyRadius: 4
   inaccuracySpeed: 1.5
+--- !u!114 &1401030427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1401030422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8cd32ffd37289324ba1c947e25749b34, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VehicularCombat.VehicleWeapon
+  inputReader: {fileID: 927474506}
+  firePoint: {fileID: 717772005}
+  projectilePrefab: {fileID: 7419611872293979269, guid: 15a1c2fd3e6ed2347bf0a52a609f3907, type: 3}
+  vehicleRigidbody: {fileID: 927474497}
+  ownerRoot: {fileID: 1971743909}
+  fireCooldown: 0.25
+  projectileSpeed: 35
+  projectileLifetime: 4
+  projectileDamage: 1
+  automaticFire: 1
+  requireLockedCursor: 1
+  maxAmmo: 30
+  reloadTime: 2
+  reportAmmoToHud: 1
+  muzzleFlash: {fileID: 0}
+  projectileImpactEffectPrefab: {fileID: 0}
 --- !u!1 &1418336927
 GameObject:
   m_ObjectHideFlags: 0
