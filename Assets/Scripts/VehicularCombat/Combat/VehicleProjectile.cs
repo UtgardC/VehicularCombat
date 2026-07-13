@@ -79,7 +79,22 @@ namespace VehicularCombat
 
         private void OnTriggerEnter(Collider other)
         {
-            Vector3 hitPoint = other.ClosestPoint(transform.position);
+            Vector3 hitPoint;
+
+            // --- EL SALVAVIDAS ANTI-ERROR AMARILLO ---
+            // Si le disparamos a un MeshCollider (el piso/paredes de tu mapa) que NO es Convex...
+            if (other is MeshCollider meshCollider && !meshCollider.convex)
+            {
+                // NO usamos ClosestPoint porque Unity tira error y rompe todo.
+                // Simplemente decimos: "El impacto ocurrió exactamente donde está la bala ahora mismo".
+                hitPoint = transform.position;
+            }
+            else
+            {
+                // Si le pegamos a una caja, cápsula, o jugador, SÍ calculamos con precisión matemática.
+                hitPoint = other.ClosestPoint(transform.position);
+            }
+
             Vector3 hitNormal = (transform.position - hitPoint).sqrMagnitude > 0.0001f
                 ? (transform.position - hitPoint).normalized
                 : -transform.forward;

@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 using UnityEngine;
-using VehicularCombat; // Asegura el acceso a tu VehicleInputReader sin errores
+using VehicularCombat;
 
 public class EntryPointManager : MonoBehaviour
 {
@@ -11,6 +11,17 @@ public class EntryPointManager : MonoBehaviour
 
     [Header("Referencia al jugador")]
     public GameObject player;
+
+    // --- AGREGADO PARA ENEMIGOS ---
+    [Header("Enemigos")]
+    [Tooltip("Arrastrá acá el PREFAB (cubo azul) del enemigo")]
+    public GameObject enemyPrefab;
+
+    [Tooltip("Cantidad de enemigos que van a aparecer en cada punto libre")]
+    public int enemiesPerSpawnPoint = 2;
+
+    [Tooltip("Radio en metros para que los autos no spawneen pegados y salgan volando")]
+    public float spawnRadius = 4f;
 
     [Header("Configuración de Intro")]
     [Tooltip("Segundos que dura la pantalla de inicio bloqueando al jugador")]
@@ -54,6 +65,9 @@ public class EntryPointManager : MonoBehaviour
         // 2. POSICIONAR AL JUGADOR
         SpawnPlayerAt(entry.transform);
 
+        // --- 3. SPAWNEAR MÚLTIPLES ENEMIGOS EN LA MISMA ZONA ---
+        SpawnEnemiesInSameZone(entry);
+
         char zonaChar = entry.zona switch
         {
             EntryPoint.ZonaAsociada.A => 'A',
@@ -64,31 +78,31 @@ public class EntryPointManager : MonoBehaviour
 
         HUDManager.Instance?.SetActiveZone(zonaChar);
 
-        // 3. PREPARAR PANTALLA (Pone el Alpha en 0 y activa el objeto)
+        // 4. PREPARAR PANTALLA
         HUDManager.Instance?.SetupIntroScreen(entry.imagenEspecificaDeInicio);
 
-        // 4. ANIMACIÓN DE ENTRADA (Fade In del fondo + Flicker de la imagen)
+        // 5. ANIMACIÓN DE ENTRADA
         if (HUDManager.Instance != null && HUDManager.Instance.introPanelAnimator != null)
         {
             yield return StartCoroutine(HUDManager.Instance.introPanelAnimator.Animate(true));
         }
 
-        // 5. TIEMPO DE LECTURA
+        // 6. TIEMPO DE LECTURA
         yield return new WaitForSecondsRealtime(introDuration);
 
-        // 6. ANIMACIÓN DE SALIDA (Fade Out completo)
+        // 7. ANIMACIÓN DE SALIDA
         if (HUDManager.Instance != null && HUDManager.Instance.introPanelAnimator != null)
         {
             yield return StartCoroutine(HUDManager.Instance.introPanelAnimator.Animate(false));
         }
 
-        // 7. DEVOLVER CONTROLES AL JUGADOR
+        // 8. DEVOLVER CONTROLES AL JUGADOR
         if (inputReader != null)
         {
             inputReader.enabled = true;
         }
 
-        // 8. INICIAR EL JUEGO OFICIALMENTE
+        // 9. INICIAR EL JUEGO OFICIALMENTE
         if (global::GameManager.Instance != null)
         {
             global::GameManager.Instance.SetState(global::GameManager.GameState.Playing);
@@ -112,6 +126,36 @@ public class EntryPointManager : MonoBehaviour
         else
         {
             player.transform.SetPositionAndRotation(entry.position, entry.rotation);
+        }
+    }
+
+    // --- METODO PARA GENERAR LOS MULTIPLES ENEMIGOS ---
+    private void SpawnEnemiesInSameZone(EntryPoint playerEntry)
+    {
+        if (enemyPrefab == null)
+        {
+            Debug.LogWarning("Falta asignar el Prefab del Enemigo en el EntryPointManager.");
+            return;
+        }
+
+        // Recorremos todos los puntos de la lista
+        foreach (EntryPoint ep in entryPoints)
+        {
+            // Verificamos que sea la misma zona y NO sea el punto del jugador
+            if (ep.zona == playerEntry.zona && ep != playerEntry)
+            {
+                // Spawneamos la cantidad que elegiste en el Inspector
+                for (int i = 0; i < enemiesPerSpawnPoint; i++)
+                {
+                    // Calculamos una posición al azar alrededor del punto central
+                    Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
+                    Vector3 spawnOffset = new Vector3(randomCircle.x, 1.5f, randomCircle.y);
+                    Vector3 finalSpawnPosition = ep.transform.position + spawnOffset;
+
+                    // Instanciamos al enemigo
+                    Instantiate(enemyPrefab, finalSpawnPosition, ep.transform.rotation);
+                }
+            }
         }
     }
 }

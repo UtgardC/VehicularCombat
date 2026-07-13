@@ -68,6 +68,16 @@ namespace VehicularCombat
             CacheTargetRigidbody();
         }
 
+        private void Start()
+        {
+            // Si nazco sin objetivo, busco al objeto que tenga la etiqueta "Player"
+            if (target == null)
+            {
+                target = GameObject.FindGameObjectWithTag("Player")?.transform;
+            }
+
+        }
+
         private void LateUpdate()
         {
             if (target == null || turretYawPivot == null)

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace VehicularCombat
 {
@@ -34,11 +35,24 @@ namespace VehicularCombat
         [SerializeField, Min(0.01f), Tooltip("Local horizontal distance that produces full steering input.")]
         private float steeringSensitivityDistance = 5f;
 
+        [Header("Navegación NavMesh (GPS)")]
+        [Tooltip("Cada cuántos segundos recalcula la ruta. 0.5 es ideal para rendimiento.")]
+        public float pathUpdateInterval = 0.5f;
+
+        [Tooltip("A qué distancia de la esquina actual empieza a doblar hacia la siguiente")]
+        public float waypointTolerance = 6f;
+
+        private NavMeshPath path;
+        private float pathTimer;
+        private int currentWaypointIndex;
+
         private float currentAccelerate;
         private float currentReverse;
         private float currentSteering;
         private bool currentFireHeld;
         private float disengageTimer;
+        private Rigidbody rb;
+        private float stuckTimer;
 
         public override float Accelerate => currentAccelerate;
         public override float Reverse => currentReverse;
@@ -59,6 +73,8 @@ namespace VehicularCombat
             {
                 turretAim = GetComponentInChildren<EnemyTurretAim1>();
             }
+            path = new NavMeshPath();
+            rb = GetComponent<Rigidbody>(); // <-- AGREGADO
         }
 
         private void Start()
@@ -85,18 +101,60 @@ namespace VehicularCombat
                 return;
             }
 
-            Vector3 toTarget = target.position - transform.position;
-            float distance = toTarget.magnitude;
-            Vector3 localTargetPosition = transform.InverseTransformPoint(target.position);
+            // --- 1. EL GPS CALCULA LA RUTA ---
+            pathTimer += Time.deltaTime;
+            if (pathTimer >= pathUpdateInterval)
+            {
+                NavMesh.CalculatePath(transform.position, target.position, NavMesh.AllAreas, path);
+                currentWaypointIndex = 1; // 0 es el origen (abajo del auto)
+                pathTimer = 0f;
+            }
 
+            // --- 2. BUSCAR A QUÉ ESQUINA APUNTAR ---
+            Vector3 positionToSteerTowards = target.position; // Por defecto, apuntamos al jugador
+
+            if (path != null && path.corners.Length > 1 && currentWaypointIndex < path.corners.Length)
+            {
+                // Si llegamos a la esquina actual, pasamos a la siguiente miga de pan
+                if (Vector3.Distance(transform.position, path.corners[currentWaypointIndex]) < waypointTolerance)
+                {
+                    if (currentWaypointIndex < path.corners.Length - 1)
+                    {
+                        currentWaypointIndex++;
+                    }
+                }
+                positionToSteerTowards = path.corners[currentWaypointIndex];
+            }
+
+            // --- 3. CALCULAR DIRECCIONES ---
+            // Distancia real al jugador (para saber cuándo disparar)
+            Vector3 toActualTarget = target.position - transform.position;
+            float distanceToPlayer = toActualTarget.magnitude;
+
+            // Posición local de la esquina del GPS (para saber cómo doblar)
+            Vector3 localWaypointPosition = transform.InverseTransformPoint(positionToSteerTowards);
+
+            // --- 4. MOVER EL AUTO ---
+            // Movemos el volante apuntando a la esquina, NO atravesando la pared
             currentSteering = Mathf.Clamp(
-                localTargetPosition.x / steeringSensitivityDistance,
+                localWaypointPosition.x / steeringSensitivityDistance,
                 -1f,
                 1f);
 
-            bool canFire = CanFireAtTarget(toTarget);
-            UpdateDriving(distance, localTargetPosition, canFire);
+            bool canFire = CanFireAtTarget(toActualTarget);
+
+            //la IA no intenta hacer reversa pensando que estás a su espalda.
+            UpdateDriving(distanceToPlayer, localWaypointPosition, canFire);
+
+            if (path != null && path.corners.Length > 1)
+            {
+                for (int i = 0; i < path.corners.Length - 1; i++)
+                {
+                    Debug.DrawLine(path.corners[i], path.corners[i + 1], Color.red);
+                }
+            }
         }
+
 
         public void SetTarget(Transform newTarget)
         {
@@ -120,16 +178,34 @@ namespace VehicularCombat
 
         private void UpdateDriving(float distance, Vector3 localTargetPosition, bool canFire)
         {
+            // --- 1. SISTEMA ANTI-ESTANCAMIENTO (¡NUEVO!) ---
+            // Si el motor intenta avanzar (acelerador > 0.5), pero físicamente casi no nos movemos...
+            if (currentAccelerate > 0.5f && rb.linearVelocity.magnitude < 2.5f)
+            {
+                stuckTimer += Time.deltaTime;
+                if (stuckTimer > 0.8f) // Si paso casi 1 segundo frenado contra algo
+                {
+                    disengageTimer = disengageDuration; // ¡Activar reversa de emergencia!
+                    stuckTimer = 0f;
+                }
+            }
+            else
+            {
+                stuckTimer = 0f; // Si me estoy moviendo bien, reseteo el cronómetro
+            }
+
+            // --- 2. LÓGICA DE REVERSA ---
             if (disengageTimer > 0f)
             {
                 disengageTimer -= Time.deltaTime;
                 currentAccelerate = 0f;
                 currentReverse = 1f;
-                currentSteering = -currentSteering;
+                currentSteering = -currentSteering; // Girar al revés para "desengancharse" de la pared
                 currentFireHeld = distance <= engageRange && canFire;
                 return;
             }
 
+            // --- 3. CHOQUE CONTRA JUGADOR ---
             if (distance <= impactDistance && localTargetPosition.z > -1f)
             {
                 disengageTimer = disengageDuration;
@@ -139,6 +215,7 @@ namespace VehicularCombat
                 return;
             }
 
+            // --- 4. CONDUCCIÓN NORMAL ---
             currentAccelerate = 1f;
             currentReverse = 0f;
             currentFireHeld = distance <= engageRange && canFire;
