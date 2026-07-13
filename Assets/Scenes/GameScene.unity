@@ -6065,7 +6065,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94d44f891a570da48a3b0340efe8686d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  runDuration: 180
+  runDuration: 300
   objectivesRequired: 3
   currentTime: 0
   objectivesDestroyed: 0

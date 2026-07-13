@@ -648,9 +648,9 @@ MonoBehaviour:
   target: {fileID: 0}
   findPlayerOnStart: 1
   turretAim: {fileID: 1078731089832412294}
-  engageRange: 50
-  rammingRange: 15
-  impactDistance: 4
+  engageRange: 100
+  rammingRange: 1
+  impactDistance: 1
   disengageDuration: 1.2
   fireAngleTolerance: 20
   steeringSensitivityDistance: 5
